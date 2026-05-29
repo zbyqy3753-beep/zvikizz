@@ -1,36 +1,53 @@
 import feedparser
 
-# 10 המקורות הכי יציבים (למנוע עומס על ה-AI)
+# רשימת ה-RSS שלך
 urls = [
     "https://www.ynet.co.il/Integration/StoryRss1854.xml",
-    "https://rss.walla.co.il/feed/22",
-    "https://www.israelhayom.co.il/rss.xml",
-    "https://www.globes.co.il/feed/news-rss.xml"
+    "https://rss.walla.co.il/feed/22"
 ]
 
-def update_news():
-    news_text = ""
-    for url in urls:
-        try:
-            feed = feedparser.parse(url)
-            if feed.entries:
-                # לוקחים רק כותרת אחת לכל מקור כדי לשמור על קובץ קטן
-                news_text += f"{feed.entries[0].title}\n"
-        except: continue
+def get_ai_content(raw_news):
+    # כאן אתה קורא ל-AI שלך. 
+    # חשוב: תחזיר רק טקסט HTML תקין, ללא {{ }}
+    return f"<h2>סיכום היום</h2><p>הנה חדשות היום: {raw_news[:200]}...</p>"
 
-    # כאן אתה שולח ל-AI. 
-    # טיפ: בקש ממנו "כתוב תגובה קצרה וממוקדת בפורמט HTML"
-    ai_html = "<h2>סקירה</h2><p>ניתוח קצר...</p>" 
+def run_newspaper():
+    # 1. איסוף נתונים
+    news_items = []
+    for url in urls:
+        feed = feedparser.parse(url)
+        if feed.entries:
+            news_items.append(feed.entries[0].title)
     
-    html_content = f"""
-    <html><body dir="rtl">
-    <h1>עיתון ה-AI</h1>
-    {ai_html}
-    </body></html>
+    raw_news = " | ".join(news_items)
+    
+    # 2. קבלת התוכן מה-AI
+    ai_html_content = get_ai_content(raw_news)
+    
+    # 3. יצירת ה-HTML הסופי (נקי מ-Jinja)
+    final_html = f"""
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+        <meta charset="UTF-8">
+        <title>עיתון ה-AI</title>
+        <style>
+            body {{ font-family: sans-serif; background: #eee; padding: 20px; }}
+            .card {{ background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>📰 עיתון ה-AI היומי</h1>
+            {ai_html_content}
+        </div>
+    </body>
+    </html>
     """
     
+    # 4. שמירה כ-index.html
     with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
+        f.write(final_html)
 
 if __name__ == "__main__":
-    update_news()
+    run_newspaper()
